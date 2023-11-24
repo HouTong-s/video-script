@@ -3,7 +3,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException,NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 
@@ -98,18 +98,53 @@ for i in range(len(li_elements)):
             li_elements_b = lesson1_lists.find_elements(By.TAG_NAME, "li")
         except Exception as e:
             pass
-        
+        li_len = len(li_elements_b)
         for li_b in li_elements_b:
-            text = li_b.text
-            li_b_text.append(text)
+            try:
+                lesson_pass_div = li_b.find_element(By.CLASS_NAME, "lesson_pass")
+                li_b_text.append(True)
+            except NoSuchElementException:
+                li_b_text.append(False)
+
 
             a_b = li_b.find_element(By.TAG_NAME, "a")
             new_url_ = a_b.get_attribute("href")
             new_url_b.append(new_url_)
-    
-        for j in range(len(li_elements_b)):
+
+        #可能有多页
+        try:
+            pages = lesson1_lists.find_element(By.CLASS_NAME,"pages")
+            #一直点下一页，记录所有的课程
+            while True:
+                try:                    
+                    next_page = pages.find_element(By.XPATH,"//a[text()='下一页']")
+                    next_page.click()
+                except NoSuchElementException:
+                    break
+                lesson1_lists = driver.find_element(By.CLASS_NAME, "lesson1_lists")
+                _li_elements_b = lesson1_lists.find_elements(By.TAG_NAME, "li")
+                li_len += len(_li_elements_b)
+                for li_b in _li_elements_b:
+                    try:
+                        lesson_pass_div = li_b.find_element(By.CLASS_NAME, "lesson_pass")
+                        li_b_text.append(True)
+                    except NoSuchElementException:
+                        li_b_text.append(False)
+
+
+                    a_b = li_b.find_element(By.TAG_NAME, "a")
+                    new_url_ = a_b.get_attribute("href")
+                    new_url_b.append(new_url_)
+                pages = lesson1_lists.find_element(By.CLASS_NAME,"pages")
+
+        except NoSuchElementException:
+            pass
+        
+        # print("li_b_text:" + str(li_b_text))
+        # print("new_url_b" + str(new_url_b))
+        for j in range(li_len):
             # 检查li_b标签内部是否包含“完成”的文本
-            if "完成" in li_b_text[j]:
+            if li_b_text[j]:
                 print("已完成一个课程！") 
                 continue  # 如果包含“完成”，跳过此li
             else:
